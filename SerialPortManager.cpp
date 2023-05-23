@@ -1,0 +1,69 @@
+#include "SerialPortManager.h"
+
+SerialPortManager::SerialPortManager(QObject *parent) : QObject(parent)
+{
+    serialPort = new QSerialPort(this);
+
+    connect(serialPort, &QSerialPort::readyRead, this, &SerialPortManager::onReadyRead);
+    connect(serialPort, &QSerialPort::errorOccurred, this, &SerialPortManager::onPortDisconnected);
+    connect(serialPort, &QSerialPort::aboutToClose, this, &SerialPortManager::onPortDisconnected);
+}
+
+SerialPortManager::~SerialPortManager()
+{
+    if (serialPort->isOpen())
+        serialPort->close();
+
+    delete serialPort;
+}
+
+void SerialPortManager::slot_UpdatePort()
+{
+    QStringList ports;
+
+    foreach (const QSerialPortInfo &portInfo, QSerialPortInfo::availablePorts())
+    {
+        ports.append(portInfo.portName());
+    }
+
+    emit signal_AvailablePorts(ports);
+}
+
+void SerialPortManager::slot_Connect(QString port)
+{
+    if (serialPort->isOpen())
+        serialPort->close();
+
+    serialPort->setPortName(port);
+
+    if (serialPort->open(QIODevice::ReadWrite))
+    {
+        emit signal_Connected();
+    }
+    else
+    {
+        emit signal_Disconnected();
+    }
+}
+
+void SerialPortManager::slot_WriteData(const QByteArray &data)
+{
+    if (serialPort->isOpen())
+    {
+        serialPort->write(data);
+    }
+}
+
+void SerialPortManager::onReadyRead()
+{
+    QByteArray data = serialPort->readAll();
+    emit signal_ReadyRead(data);
+}
+
+void SerialPortManager::onPortDisconnected()
+{
+    if (serialPort->isOpen())
+        serialPort->close();
+
+    emit signal_Disconnected();
+}
