@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <SerialPortManager.h>
+#include <qcustomplot.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -15,6 +16,7 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
 
 private slots:
     void on_pushButton_startStopHeat_clicked();
@@ -32,11 +34,17 @@ private slots:
     void on_pushButton_updatePort_clicked();
 
 private:
-    SerialPortManager *serial_port_manager;
-
-
-
-private:
     Ui::MainWindow *ui;
+    SerialPortManager *serial_port_manager;
+    QList<double> temper_list;
+    int n_points_plot = 100;
+    double pValue;
+    double iValue;
+    double dValue;
+
+    void drawLastNPoints(QCustomPlot* plot, const QList<double>& temper_list, int n_points, double pValue, double iValue, double dValue);
+
+
+
 };
 #endif // MAINWINDOW_H
