@@ -51,7 +51,9 @@ void SerialPortManager::slot_WriteData(const QByteArray &data)
     if (serialPort->isOpen())
     {
         serialPort->write(data);
+        serialPort->waitForBytesWritten();
     }
+
 }
 
 void SerialPortManager::onReadyRead()

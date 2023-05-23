@@ -5,6 +5,14 @@
 #include <SerialPortManager.h>
 #include <qcustomplot.h>
 
+#define START_HEATING "START_HEATING"
+#define SET_PID "SET_PID"
+#define GET_PID "GET_PID"
+#define SET_TARGET_TEMP "SET_TARGET_TEMP"
+#define GET_CURRENT_TEMP "GET_CURRENT_TEMP"
+
+
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -33,16 +41,28 @@ private slots:
 
     void on_pushButton_updatePort_clicked();
 
+    void updateKoeff();
+
+    void on_pushButton_getTemp_2_clicked();
+
+    void on_pushButton_setTargetTemp_clicked();
+
+public slots:
+    void processReceivedData(QByteArray data);
+
 private:
     Ui::MainWindow *ui;
     SerialPortManager *serial_port_manager;
     QList<double> temper_list;
     int n_points_plot = 100;
-    double pValue;
-    double iValue;
-    double dValue;
+    float pValue;
+    float iValue;
+    float dValue;
+    QString split_sign = "\t";
 
-    void drawLastNPoints(QCustomPlot* plot, const QList<double>& temper_list, int n_points, double pValue, double iValue, double dValue);
+    float targetTemp = 50;
+
+    void drawLastNPoints(QCustomPlot* plot, const QList<double>& temper_list, int n_points, double pValue, double iValue, double dValue, float targetTemp);
 
 
 
