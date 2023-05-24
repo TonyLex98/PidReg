@@ -9,6 +9,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     serial_port_manager = new SerialPortManager();
 
+    timerGetTemperature = new QTimer();
+
+    connect(timerGetTemperature, &QTimer::timeout, this, &MainWindow::on_pushButton_getTemp_clicked);
+
     connect(serial_port_manager, &SerialPortManager::signal_AvailablePorts, ui->comboBox_port, &QComboBox::addItems);
     connect(ui->pushButton_updatePort, &QPushButton::clicked, serial_port_manager, &SerialPortManager::slot_UpdatePort);
 
@@ -20,20 +24,20 @@ MainWindow::MainWindow(QWidget *parent)
     ui->lineEdit_I->setText(QString::number(iValue));
     ui->lineEdit_D->setText(QString::number(dValue));
 
-    n_points_plot = 100;
+    n_points_plot = 500;
 
-    targetTemp = 50;
+    targetTemp = 40;
     ui->lineEdit_tergetTemp->setText(QString::number(targetTemp));
 
-    for(int i = 0; i<500; i++)
-        temper_list.push_back(sin(2*M_PI*i*0.05));
+    /*for(int i = 0; i<500; i++)
+        temper_list.push_back(sin(2*M_PI*i*0.05));*/
 
     drawLastNPoints(ui->customPlotTemper, temper_list, n_points_plot, pValue, iValue, dValue, targetTemp);
 
-    connect(ui->lineEdit_P, &QLineEdit::textChanged, this, &MainWindow::updateKoeff);
-    connect(ui->lineEdit_I, &QLineEdit::textChanged, this, &MainWindow::updateKoeff);
-    connect(ui->lineEdit_D, &QLineEdit::textChanged, this, &MainWindow::updateKoeff);
-    connect(ui->lineEdit_tergetTemp, &QLineEdit::textChanged, this, &MainWindow::updateKoeff);
+    connect(ui->lineEdit_P, &QLineEdit::textEdited, this, &MainWindow::updateKoeff);
+    connect(ui->lineEdit_I, &QLineEdit::textEdited, this, &MainWindow::updateKoeff);
+    connect(ui->lineEdit_D, &QLineEdit::textEdited, this, &MainWindow::updateKoeff);
+    connect(ui->lineEdit_tergetTemp, &QLineEdit::textEdited, this, &MainWindow::updateKoeff);
 
     connect(serial_port_manager, &SerialPortManager::signal_ReadyRead, this, &MainWindow::processReceivedData);
 
@@ -48,16 +52,29 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_startStopHeat_clicked()
 {
-    // Команда на запуск нагрева
-    QString startHeatingCommand = START_HEATING;
-    serial_port_manager->slot_WriteData(startHeatingCommand.toUtf8());
+    if(isHeatStarted==false){
+        isHeatStarted = true;
+        timerGetTemperature->start(1000);
+        ui->pushButton_startStopHeat->setText("Stop Heat ");
+        // Команда на запуск нагрева
+        QString startHeatingCommand = START_HEATING + end_sign;
+        serial_port_manager->slot_WriteData(startHeatingCommand.toUtf8());
+    } else{
+        isHeatStarted = false;
+        timerGetTemperature->stop();
+        // Команда на запуск нагрева
+        ui->pushButton_startStopHeat->setText("Start Heat ");
+        QString stopHeatingCommand = STOP_HEATING + end_sign;
+        serial_port_manager->slot_WriteData(stopHeatingCommand.toUtf8());
+    }
 }
 
 
 void MainWindow::on_pushButton_getTemp_clicked()
 {
     // Считывание текущей температуры
-    QString getCurrentTempCommand = GET_CURRENT_TEMP;
+    QString getCurrentTempCommand = GET_CURRENT_TEMP + end_sign;
+    qDebug()<<"getCurrentTempCommand = "<<getCurrentTempCommand;
     serial_port_manager->slot_WriteData(getCurrentTempCommand.toUtf8());
 }
 
@@ -87,7 +104,7 @@ void MainWindow::on_pushButton_setCoeff_clicked()
     iValue = ui->lineEdit_I->text().toFloat();
     dValue = ui->lineEdit_D->text().toFloat();
 
-   QString setPidCommand = SET_PID + split_sign + QString::number(pValue) + split_sign + QString::number(iValue) + split_sign+ QString::number(dValue);
+   QString setPidCommand = SET_PID + split_sign + QString::number(pValue) + split_sign + QString::number(iValue) + split_sign+ QString::number(dValue) + end_sign;
    qDebug()<<"setPidCommand = "<< setPidCommand;
    serial_port_manager->slot_WriteData(setPidCommand.toUtf8());
 }
@@ -96,7 +113,7 @@ void MainWindow::on_pushButton_getCoeff_clicked()
 {
 
     // Запрос данных о коэффициентах PID
-    QString getPidCommand = GET_PID;
+    QString getPidCommand = GET_PID + end_sign;
     serial_port_manager->slot_WriteData(getPidCommand.toUtf8());
 }
 
@@ -193,20 +210,11 @@ void MainWindow::drawLastNPoints(QCustomPlot* plot, const QList<double>& temper_
     plot->replot();
 }
 
-
-
-
-void MainWindow::on_pushButton_getTemp_2_clicked()
-{
-
-}
-
-
 void MainWindow::on_pushButton_setTargetTemp_clicked()
 {
     targetTemp = ui->lineEdit_tergetTemp->text().toFloat();
 
-    QString setTargetTempCommand = SET_TARGET_TEMP+ split_sign + QString::number(targetTemp);
+    QString setTargetTempCommand = SET_TARGET_TEMP+ split_sign + QString::number(targetTemp) + end_sign;
     serial_port_manager->slot_WriteData(setTargetTempCommand.toUtf8());
 }
 
@@ -223,10 +231,17 @@ void MainWindow::processReceivedData(QByteArray data)
     if (command == SET_PID)
     {
         // Получение коэффициентов PID
-        if (sscanf(data.constData(), "SET_PID\t%f\t%f\t%f", &pValue, &iValue, &dValue) == 3)
+        if (data_list.size()==4)
         {
+            pValue = data_list.at(1).toFloat();
+            iValue = data_list.at(2).toFloat();
+            dValue = data_list.at(3).toFloat();
+
             // Обработка команды SET_PID
-            updateKoeff();
+            ui->lineEdit_P->setText(QString::number(pValue));
+            ui->lineEdit_I->setText(QString::number(iValue));
+            ui->lineEdit_D->setText(QString::number(dValue));
+            //updateKoeff();
             qDebug() << "Received SET_PID command. pCoeff =" << pValue << "iCoeff =" << iValue << "dCoeff =" << dValue;
         }
         else
@@ -237,8 +252,25 @@ void MainWindow::processReceivedData(QByteArray data)
     }
     else if (command == GET_PID)
     {
-        // Обработка команды GET_PID
-        qDebug() << "Received GET_PID command";
+        // Получение коэффициентов PID
+        if (data_list.size()==4)
+        {
+            pValue = data_list.at(1).toFloat();
+            iValue = data_list.at(2).toFloat();
+            dValue = data_list.at(3).toFloat();
+
+            // Обработка команды GET_PID
+            ui->lineEdit_P->setText(QString::number(pValue));
+            ui->lineEdit_I->setText(QString::number(iValue));
+            ui->lineEdit_D->setText(QString::number(dValue));
+            //updateKoeff();
+            qDebug() << "Received GET_PID command. pCoeff =" << pValue << "iCoeff =" << iValue << "dCoeff =" << dValue;
+        }
+        else
+        {
+            // Ошибка разбора команды GET_PID
+            qDebug() << "Error parsing GET_PID command";
+        }
     }
     else if (command == START_HEATING)
     {

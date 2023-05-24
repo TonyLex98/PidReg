@@ -59,6 +59,7 @@ void SerialPortManager::slot_WriteData(const QByteArray &data)
 void SerialPortManager::onReadyRead()
 {
     QByteArray data = serialPort->readAll();
+    //qDebug()<<"onReadyRead data  = "<< data;
     emit signal_ReadyRead(data);
 }
 
