@@ -11,7 +11,9 @@
 #define SET_PID "SET_PID"
 #define GET_PID "GET_PID"
 #define SET_TARGET_TEMP "SET_TARGET_TEMP"
+#define GET_TARGET_TEMP "GET_TARGET_TEMP"
 #define GET_CURRENT_TEMP "GET_CURRENT_TEMP"
+#define PULSE "PULSE"
 
 
 
@@ -47,6 +49,14 @@ private slots:
 
     void on_pushButton_setTargetTemp_clicked();
 
+    void on_pushButton_setPlotPoints_clicked();
+
+    void on_pushButton_autoKoeff_clicked();
+
+    void on_pushButton_getTargetTemp_clicked();
+
+    void on_pushButton_startStopTempMeas_clicked();
+
 public slots:
     void processReceivedData(QByteArray data);
 
@@ -64,8 +74,25 @@ private:
     QString end_sign = "\r";
 
     float targetTemp = 50;
+    float pulse = 0;
 
     bool isHeatStarted = false;
+    bool isStartMeasTemp = false;
+
+    bool isAutoKoeff = 0;
+
+    int counter_current = 0;
+    int counter_lim = 1000;
+
+    float current_temp;
+
+    void changeButtonColor(QPushButton* button, const QString& color) {
+        button->setStyleSheet("background-color: " + color + ";");
+    }
+
+    void changeLineEditColor(QLineEdit* lineEdit, const QString& color) {
+        lineEdit->setStyleSheet("background-color: " + color + ";");
+    }
 
     void drawLastNPoints(QCustomPlot* plot, const QList<double>& temper_list, int n_points, double pValue, double iValue, double dValue, float targetTemp);
 

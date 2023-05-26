@@ -35,6 +35,11 @@ void SerialPortManager::slot_Connect(QString port)
         serialPort->close();
 
     serialPort->setPortName(port);
+    serialPort->setBaudRate(QSerialPort::Baud115200);
+    serialPort->setDataBits(QSerialPort::Data8);
+    serialPort->setStopBits(QSerialPort::OneStop);
+    serialPort->setParity(QSerialPort::NoParity);
+    serialPort->setFlowControl(QSerialPort::NoFlowControl);
 
     if (serialPort->open(QIODevice::ReadWrite))
     {
@@ -51,7 +56,7 @@ void SerialPortManager::slot_WriteData(const QByteArray &data)
     if (serialPort->isOpen())
     {
         serialPort->write(data);
-        serialPort->waitForBytesWritten();
+        //serialPort->waitForBytesWritten();
     }
 
 }
@@ -59,7 +64,7 @@ void SerialPortManager::slot_WriteData(const QByteArray &data)
 void SerialPortManager::onReadyRead()
 {
     QByteArray data = serialPort->readAll();
-    //qDebug()<<"onReadyRead data  = "<< data;
+    qDebug()<<"onReadyRead data  = "<< data;
     emit signal_ReadyRead(data);
 }
 
