@@ -1,0 +1,7 @@
+# Qt Creator per-user settings and shadow builds
+*.pro.user
+*.pro.user.*
+CMakeLists.txt.user
+CMakeLists.txt.user.*
+*.autosave
+build-*/
